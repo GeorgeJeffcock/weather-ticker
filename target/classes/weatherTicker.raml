@@ -1,0 +1,85 @@
+#%RAML 0.8
+title: Weather Ticker
+version: v1
+documentation:
+  - title: Weather Ticker
+    content:  Mulesoft learning Exercise. <br />
+              - Deploy to CloudHub <br /> 
+              - Use Object Store <br /> 
+              - Use http://apidev.accuweather.com/developers/ <br /> 
+              - Use Twitter <br /> 
+              - Front end of your choice...postman...outsystems... <br /> 
+              - Allow user to setup a city weather ticker via a PUT resources and to record via tweets any changes in temperature <br /> 
+              - Delete resource to delete any current ticker setup <br /> 
+              - Get resources to retieve current ticker if any exists in the object store <br /> 
+              
+mediaType: application/json
+baseUri: http://weather-ticker.cloudhub.io/api
+    
+
+/setup:
+  displayName: Get Current City Ticker
+  get:
+    description: Check if ticker exisits
+    responses:
+      200:
+        description: the check is successful
+        body:
+          application/json:
+            example : |
+                    {
+                      "Key": "27581",
+                      "LocalizedNameCity": "Brussels",
+                      "LocalizedNameCountry": "Belgium",
+                      "LocalObservationDateTime": "2017-03-29T11:55:00+02:00",
+                      "EpochTime": 1490781300,
+                      "WeatherText": "Mostly cloudy",
+                      "WeatherIcon": 6,
+                      "IsDayTime": true,
+                      "TemperatureMetricValue": 12.2,
+                      "MobileLink": "http://m.accuweather.com/en/be/brussels/27581/current-weather/27581",
+                      "Link": "http://www.accuweather.com/en/be/brussels/27581/current-weather/27581"
+                    }
+      204:
+        description: the check is successful but there was no current ticker
+  put:
+    description: Set Ticker City
+    queryParameters:
+      country:
+        type: string
+        description:  see http://apidev.accuweather.com/developers/locations#cities
+        example: UK
+        required: true
+        displayName: Country
+        minLength: 1
+      city:
+        type: string
+        description:  see http://apidev.accuweather.com/developers/locations#cities
+        example: London
+        required: true
+        displayName: City
+        minLength: 1
+    responses:
+      200:
+        description: Ticker Setup Successfully
+      400:
+        description: Empty or unrecognised queryParameters
+        body:
+          application/json:
+            example : |
+                    {
+                      "message": "City & Country combination not Recognised"
+                    }
+      500:
+        description: Server Error
+        body:
+          application/json:
+            example : |
+                    {
+                      "message": "Response code 403 mapped as failure"
+                    }
+  delete:
+      description: Delete current Ticker City
+      responses:
+        200:
+          description: If Ticker existed it has been deleted from Object Store

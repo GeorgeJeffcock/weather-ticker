@@ -1,0 +1,18 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "AccuWeatherCurrentConditions"
+        }
+    },
+    "outputMessageMetadata": {
+        "flowVariables": {
+            "currentTempMetric": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "Integer"
+            }
+        }
+    },
+    "id": "28eac694-1494-4beb-86a3-327886ba5c4a",
+    "version": "5.2.0.0"
+}

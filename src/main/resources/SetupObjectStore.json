@@ -1,0 +1,13 @@
+{
+		"Key" : "12344",
+		"LocalizedNameCity" : "London",
+		"LocalizedNameCountry" : "United Kingdon",
+		"LocalObservationDateTime" : "2017-03-24T12:15:00+00:00",
+		"EpochTime" : 1490357700,
+		"WeatherText" : "Cloudy",
+		"WeatherIcon" : 7,
+		"IsDayTime" : true,
+		"TemperatureMetricValue" : 8.9,
+		"MobileLink" : "http://m.accuweather.com/en/gb/london/ec4a-2/current-weather/328328",
+		"Link" : "http://www.accuweather.com/en/gb/london/ec4a-2/current-weather/328328"
+}

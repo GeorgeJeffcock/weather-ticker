@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:twitter="http://www.mulesoft.org/schema/mule/twitter" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/twitter http://www.mulesoft.org/schema/mule/twitter/current/mule-twitter.xsd">
+
+   
+   
+   
+   
+   
+    <flow name="weatherTicker-main">
+        <http:listener config-ref="weatherTicker-httpListenerConfig" path="/api/*" doc:name="HTTP" allowedMethods="GET,PUT,DELETE"/>
+        <apikit:router config-ref="weatherTicker-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="weatherTicker-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="weatherTicker-console">
+        <http:listener config-ref="weatherTicker-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="weatherTicker-config" doc:name="APIkit Console"/>
+
+        
+    </flow>
+    <flow name="get:/setup:weatherTicker-config" processingStrategy="synchronous">
+        <flow-ref name="f_ObjectStore_Retrieve" doc:name="f_ObjectStore_Retrieve"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload == 'KeyNotFound']">
+                <set-property propertyName="http.status" value="#[204]" doc:name="204"/>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="#[200]" doc:name="200"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+ 
+   <flow name="put:/setup:weatherTicker-config">
+
+        
+                <http:request config-ref="HTTP_Request_Configuration_AccuWeather" path="${accuweather.basePath.search}" method="GET" doc:name="HTTP - GET AccuWeather Search City">
+            <http:request-builder>
+                <http:query-param paramName="q" value="#[message.inboundProperties.'http.query.params'.city + ',' + message.inboundProperties.'http.query.params'.country]"/>
+                <http:query-param paramName="apikey" value="${accuweather.apikey}"/>
+
+            </http:request-builder>
+        </http:request>
+        <json:json-to-object-transformer returnClass="java.util.ArrayList" doc:name="JSON to Object (as array is returned as a buffer)"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.size() == 0]">
+                <set-property propertyName="http.status" value="#[400]" doc:name="400"/>
+                <set-payload value="{ 
+	&quot;message&quot;: &quot;City &amp; Country combination not Recognised&quot;
+}" doc:name="Set Payload" encoding="UTF-8" mimeType="text/json"/>
+            </when>
+            <otherwise>
+                <enricher target="#[flowVars.accuWeatherCurrentConditions]" doc:name="Message Enricher">
+                    <processor-chain doc:name="Processor Chain">
+                        <set-variable variableName="accuweatherLocationKey" value="#[payload[0].Key]" doc:name="Variable - accuweatherLocationKey"/>
+                        <flow-ref name="sf_AccuWeatherGetCurrentConditions" doc:name="sf_AccuWeatherGetCurrentConditions"/>
+                    </processor-chain>
+                </enricher>
+                <json:object-to-json-transformer doc:name="Object to JSON"/>
+                <dw:transform-message metadata:id="10dcb00e-74d3-4e60-b39c-20d1cf83f9d2" doc:name="Transform Message">
+                    <dw:input-payload doc:sample="AccuWeatherLocation.json" mimeType="application/json"/>
+                    <dw:input-variable doc:sample="AccuWeatherCurrentConditions.json" mimeType="application/json" variableName="accuWeatherCurrentConditions"/>
+                    <dw:set-variable variableName="objectStoreValue"><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	Key: payload[0].Key,
+	LocalizedNameCity: payload[0].LocalizedName,
+	LocalizedNameCountry: payload[0].Country.LocalizedName,
+	LocalObservationDateTime: flowVars.accuWeatherCurrentConditions[0].LocalObservationDateTime,
+	EpochTime: flowVars.accuWeatherCurrentConditions[0].EpochTime,
+	WeatherText: flowVars.accuWeatherCurrentConditions[0].WeatherText,
+	WeatherIcon: flowVars.accuWeatherCurrentConditions[0].WeatherIcon,
+	IsDayTime: flowVars.accuWeatherCurrentConditions[0].IsDayTime,
+	TemperatureMetricValue: flowVars.accuWeatherCurrentConditions[0].Temperature.Metric.Value,
+	MobileLink: flowVars.accuWeatherCurrentConditions[0].MobileLink,
+	Link: flowVars.accuWeatherCurrentConditions[0].Link
+}
+]]></dw:set-variable>
+                    <dw:set-variable variableName="cityName"><![CDATA[%dw 1.0
+%output application/java
+---
+payload[0].LocalizedName]]></dw:set-variable>
+                    <dw:set-variable variableName="currentTempMetric"><![CDATA[%dw 1.0
+%output application/json
+---
+flowVars.accuWeatherCurrentConditions[0].Temperature.Metric.Value]]></dw:set-variable>
+                </dw:transform-message>
+                <flow-ref name="f_ObjectStore_Update" doc:name="f_ObjectStore_Update"/>
+                <flow-ref name="sf_Tweet" doc:name="sf_Tweet"/>
+
+            </otherwise>
+        </choice>
+
+        
+    </flow>
+ 
+ 
+    <flow name="delete:/setup:weatherTicker-config">
+
+        <flow-ref name="f_ObjectStore_Remove" doc:name="f_ObjectStore_Remove"/>
+
+
+    </flow>
+
+
+ <flow name="main_poll" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="${poll.frequency}" timeUnit="SECONDS"/>
+            <processor-chain doc:name="Processor Chain">
+                <flow-ref name="get:/setup:weatherTicker-config" doc:name="get:/setup:weatherTicker-config"/>
+                <expression-filter expression="#[message.outboundProperties['http.status'] == 200]" doc:name="Expression"/>
+            </processor-chain>
+        </poll>
+        <set-variable variableName="previousTempMetric" value="#[json:TemperatureMetricValue]" doc:name="Variable - previousTempMetric"/>
+        <enricher target="#[flowVars.currentTempMetric]" doc:name="Message Enricher to get currentTempMetric">
+            <processor-chain doc:name="Processor Chain">
+                <set-variable variableName="accuweatherLocationKey" value="#[json:Key]" doc:name="Variable - accuweatherLocationKey"/>
+                <flow-ref name="sf_AccuWeatherGetCurrentConditions" doc:name="sf_AccuWeatherGetCurrentConditions"/>
+                <object-to-string-transformer doc:name="Object to String"/>
+                <set-payload value="#[json:[0]Temperature/Metric/Value]" doc:name="Set Payload"/>
+            </processor-chain>
+        </enricher>
+
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.previousTempMetric == flowVars.currentTempMetric]">
+                <logger level="INFO" doc:name="Logger" message="No Temp Change"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="cityName" value="#[json:LocalizedNameCity]" doc:name="Variable - cityName"/>
+                <flow-ref name="sf_main_poll_UpdateNewTempToStore" doc:name="sf_main_poll_UpdateNewTempToStore"/>
+
+                <flow-ref name="sf_Tweet" doc:name="sf_Tweet"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+    
+        <sub-flow name="sf_main_poll_UpdateNewTempToStore">
+        <json:json-to-object-transformer returnClass="java.lang.Object" doc:name="JSON to Object"/>
+        <expression-component doc:name="Expression"><![CDATA[payload.TemperatureMetricValue=flowVars.currentTempMetric;]]></expression-component>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <set-variable variableName="objectStoreValue" value="#[payload]" doc:name="Variable - objectStoreValue"/>
+        <flow-ref name="f_ObjectStore_Update" doc:name="f_ObjectStore_Update"/>
+    </sub-flow>
+    <sub-flow name="sf_Tweet">
+        <set-variable variableName="tweetReply" value="#[flowVars.cityName + ' current temperature is ' + flowVars.currentTempMetric + ' &#176;C - UUID'] #[function:uuid]" doc:name="Variable - tweetReply"/>
+        <twitter:update-status config-ref="GlobalConfiguration_Twitter" status="#[flowVars.tweetReply]" inReplyTo="${twitter.id}" doc:name="Twitter - Update Status"/>
+    </sub-flow>
+  
+    <sub-flow name="sf_AccuWeatherGetCurrentConditions">
+        <http:request config-ref="HTTP_Request_Configuration_AccuWeather" path="${accuweather.basePath.currentconditions}{locationKey}.json" method="GET" doc:name="HTTP - GET AccuWeather Current Conditions">
+            <http:request-builder>
+                <http:query-param paramName="apikey" value="${accuweather.apikey}"/>
+                <http:query-param paramName="language" value="${accuweather.language}"/>
+                <http:uri-param paramName="locationKey" value="#[flowVars.accuweatherLocationKey]"/>
+            </http:request-builder>
+        </http:request>
+    </sub-flow>
+
+    <apikit:mapping-exception-strategy name="weatherTicker-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+
+
+</mule>

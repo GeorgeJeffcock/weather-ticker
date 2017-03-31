@@ -1,0 +1,26 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "setupObjectStore"
+        }
+    },
+    "outputMessageMetadata": {
+        "flowVariables": {
+            "previousTempMetric": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "Integer"
+            },
+            "accuweatherLocationKey": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "String"
+            },
+            "cityName": {
+                "connectorName": "#_custom_mule_metadata_type_#",
+                "typeId": "String"
+            }
+        }
+    },
+    "id": "ed06ba93-2dc5-465b-a233-d8d98f57f57f",
+    "version": "5.2.0.0"
+}

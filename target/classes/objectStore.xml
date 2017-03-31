@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:objectstore="http://www.mulesoft.org/schema/mule/objectstore"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/objectstore http://www.mulesoft.org/schema/mule/objectstore/current/mule-objectstore.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+
+  <flow name="f_ObjectStore_Retrieve" processingStrategy="synchronous">
+        <set-variable variableName="objectStoreKey" value="#['setup']" doc:name="Variable objectStoreKey = setup"/>
+        <objectstore:retrieve config-ref="ObjectStore__Connector" key="#[flowVars.objectStoreKey]"  targetProperty="#[flowVars.objectStoreValue]" doc:name="ObjectStore - Retrieve" defaultValue-ref="#['KeyNotFound']"/>
+        <exception-strategy ref="ChoiceExceptionStrategy_ObjectStore" doc:name="Reference Exception Strategy"/>
+    </flow>
+        <flow name="f_ObjectStore_Update">
+        <set-variable variableName="objectStoreKey" value="#['setup']" doc:name="Variable objectStoreKey = setup"/>
+        <objectstore:store config-ref="ObjectStore__Connector" key="#[flowVars.objectStoreKey]" doc:name="ObjectStore - Store" overwrite="true" value-ref="#[flowVars.objectStoreValue]"/>
+        <exception-strategy ref="ChoiceExceptionStrategy_ObjectStore" doc:name="Reference Exception Strategy"/>
+    </flow>
+        <flow name="f_ObjectStore_Remove">
+        <set-variable variableName="objectStoreKey" value="#['setup']" doc:name="Variable objectStoreKey = setup"/>
+        <objectstore:remove config-ref="ObjectStore__Connector" key="#[flowVars.objectStoreKey]" doc:name="ObjectStore - Remove" ignoreNotExists="true"/>
+        <exception-strategy ref="ChoiceExceptionStrategy_ObjectStore" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <choice-exception-strategy name="ChoiceExceptionStrategy_ObjectStore">
+        <catch-exception-strategy when="#[exception.causedBy(org.mule.api.store.ObjectDoesNotExistException)]" doc:name="Catch org.mule.api.store.ObjectDoesNotExistException">
+            <logger level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy doc:name="Catch All">
+            <logger level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </choice-exception-strategy>
+</mule>

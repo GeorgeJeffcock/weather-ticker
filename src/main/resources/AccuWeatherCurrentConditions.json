@@ -1,0 +1,22 @@
+[{
+		"LocalObservationDateTime" : "2017-03-24T12:15:00+00:00",
+		"EpochTime" : 1490357700,
+		"WeatherText" : "Cloudy",
+		"WeatherIcon" : 7,
+		"IsDayTime" : true,
+		"Temperature" : {
+			"Metric" : {
+				"Value" : 8.9,
+				"Unit" : "C",
+				"UnitType" : 17
+			},
+			"Imperial" : {
+				"Value" : 48.0,
+				"Unit" : "F",
+				"UnitType" : 18
+			}
+		},
+		"MobileLink" : "http://m.accuweather.com/en/gb/london/ec4a-2/current-weather/328328",
+		"Link" : "http://www.accuweather.com/en/gb/london/ec4a-2/current-weather/328328"
+	}
+]
